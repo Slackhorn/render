@@ -1,34 +1,49 @@
-uniform vec2 iResolution;
-uniform float iTime;
-vec2 fragCoord = gl_FragCoord.xy;
+// Thank you Fabrice Neyret for your advice!
+uniform vec2 iResolution; // Разрешение экрана
+uniform float iTime; // Время в секундах
 
-float phase(float x) {
-    return x * 2.0 + iTime * 3.0;
-}
-float func(float x)
-{
-    return sin(phase(x)) * 0.5;
+mat2 rotation2d(float angle) {
+  float s = sin(angle);
+  float c = cos(angle);
+
+  return mat2(
+    c, -s,
+    s, c
+  );
 }
 
-void main()
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
-    vec2 uv = fragCoord/iResolution.xy;
-    uv = uv * 2.0 - 1.0;
-    uv.x *= iResolution.x / iResolution.y;
+    vec2 uv = ( fragCoord - .5 * iResolution ) / iResolution.y;
     
-    const float dx = 0.01;
-    float amp = func(uv.x);
-    float amp_left = func(uv.x - dx);
-    float amp_right = func(uv.x + dx);
-    float dy_dx = (amp_right - amp_left) / (dx * 2.0);
-    float diff = abs(amp - uv.y);
-    diff = mod(diff + 0.25, 0.5) - 0.25;
-    diff /= sqrt(dy_dx * dy_dx + 1.0);
+    float x = 1e20;
+    float y = -1.0;
+    int th = 8;
+    for (int i=0;i<th;i++) {
+        float yes = float(i)/float(th);
+        
+        vec2 fs = rotation2d(yes*3.1415*2.0) * uv;
+        fs = fs-vec2(0.0,0.11);
+        float test = length(fs*30.0);
+        if (test < 1.0) { y = yes; }
+        x = min(x,test);
+    }
     
-    vec3 col = vec3(exp(0.2 - diff * 30.0));
-    col *= 0.5 + 0.5 * sin(vec3(0.0, 2.0 * 3.14159 / 3.0, 2.0 * 3.14159 * 4.0 / 3.0) + phase(uv.x) - iTime * 5.0);
-    col = mix(col, vec3(1.0), exp(0.1 - diff * 100.0));
-    col = pow(col, vec3(1.0 / 2.2));
+    float bgshade = 0.1;
+    y = 1.0-y;
+    uv.y += 0.99;
     
-    gl_FragColor = vec4(col, 1.0);
+    float flippy = mix(bgshade*0.9+0.1,1.0,fract(y-iTime));
+    float pxw = 45./iResolution.y;
+    if (y >= -1.0) { flippy = mix(flippy,bgshade,smoothstep(1.0-pxw,1.0,x)); }
+    else { flippy = bgshade; }
+    
+    fragColor = vec4(vec3(flippy),1.0);
+}
+
+
+void main() {
+    vec4 color;
+    mainImage(color, gl_FragCoord.xy);
+    gl_FragColor = color;
 }
