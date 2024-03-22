@@ -83,7 +83,7 @@ def main():
 
     # Loop until the user closes the window
     while not glfw.window_should_close(window):
-        glUniform1f(glGetUniformLocation(shader, "Time"), glfw.get_time())
+        glUniform1f(glGetUniformLocation(shader, "iTime"), glfw.get_time())
         # Render here, e.g. using pyOpenGL
         glClear(GL_COLOR_BUFFER_BIT)
         glDrawArrays(GL_TRIANGLES, 0, 6)
